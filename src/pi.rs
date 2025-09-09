@@ -20,6 +20,11 @@ pub fn compute_pi(digits: usize, algorithm: PiAlgorithm) -> String {
 
 // Оригинальный алгоритм (оптимизированный)
 fn compute_pi_chudnovsky_naive(digits: usize) -> String {
+    // Проверяем разумные пределы
+    if digits > 1_000_000 {
+        panic!("Слишком большое количество знаков для наивного алгоритма! Максимум: 1,000,000 знаков.\nИспользуйте Binary Splitting для больших вычислений.");
+    }
+    
     // Calculate required precision in bits (approximately digits * log2(10))
     let prec = ((digits as f64) * 3.3219280948873626).ceil() as u32 + 32; // больше запаса для точности
 
@@ -73,8 +78,12 @@ fn compute_pi_chudnovsky_naive(digits: usize) -> String {
 
         // Более эффективное обновление факториалов
         // (6k)! / (3k)! / k!^3 = (6k-5)(6k-4)(6k-3)(6k-2)(6k-1)(6k) / ((3k-2)(3k-1)(3k) * k^3)
-        factorial_num *= (6 * k - 5) * (6 * k - 4) * (6 * k - 3) * (6 * k - 2) * (6 * k - 1) * (6 * k);
-        factorial_den *= (3 * k - 2) * (3 * k - 1) * (3 * k) * k * k * k;
+        // Используем Integer для предотвращения переполнения
+        for i in 0..6 {
+            factorial_num *= 6 * k - 5 + i;
+        }
+        factorial_den *= (3 * k - 2) * (3 * k - 1) * (3 * k);
+        factorial_den *= k * k * k;
 
         // Update power of 640320^3
         power_of_640320_cubed *= &base_640320_cubed;
@@ -98,6 +107,11 @@ fn compute_pi_chudnovsky_naive(digits: usize) -> String {
 
 // Binary Splitting алгоритм Чудновского - самый быстрый для больших чисел
 fn compute_pi_chudnovsky_binary_splitting(digits: usize) -> String {
+    // Проверяем разумные пределы для предотвращения переполнения и чрезмерного использования памяти
+    if digits > 10_000_000 {
+        panic!("Слишком большое количество знаков! Максимум: 10,000,000 знаков.\nДля больших вычислений используйте специализированные библиотеки.");
+    }
+    
     let prec = ((digits as f64) * 3.3219280948873626).ceil() as u32 + 64;
     let n = (digits / 14) + 5;
 
@@ -171,6 +185,11 @@ fn compute_pi_chudnovsky_binary_splitting(digits: usize) -> String {
 
 // Формула Мачина: π/4 = 4*arctan(1/5) - arctan(1/239)
 fn compute_pi_machin(digits: usize) -> String {
+    // Проверяем разумные пределы
+    if digits > 5_000_000 {
+        panic!("Слишком большое количество знаков для формулы Мачина! Максимум: 5,000,000 знаков.\nИспользуйте Binary Splitting для больших вычислений.");
+    }
+    
     let prec = ((digits as f64) * 3.3219280948873626).ceil() as u32 + 32;
     
     let pb = ProgressBar::new_spinner();
@@ -222,6 +241,11 @@ fn compute_pi_machin(digits: usize) -> String {
 
 // Алгоритм Борвейна (квадратичная сходимость)
 fn compute_pi_borwein_quadratic(digits: usize) -> String {
+    // Проверяем разумные пределы
+    if digits > 2_000_000 {
+        panic!("Слишком большое количество знаков для алгоритма Борвейна! Максимум: 2,000,000 знаков.\nИспользуйте Binary Splitting для больших вычислений.");
+    }
+    
     let prec = ((digits as f64) * 3.3219280948873626).ceil() as u32 + 32;
     
     let pb = ProgressBar::new_spinner();
@@ -472,5 +496,43 @@ mod tests {
         }
 
         println!("✅ Performance targets test passed!");
+    }
+
+    #[test]
+    #[should_panic(expected = "Слишком большое количество знаков")]
+    fn test_overflow_protection_binary_splitting() {
+        println!("\n🛡️  Testing overflow protection for Binary Splitting...");
+        let _result = compute_pi(20_000_000, PiAlgorithm::ChudnovskyBinarySplitting);
+    }
+
+    #[test]
+    #[should_panic(expected = "Слишком большое количество знаков")]
+    fn test_overflow_protection_naive() {
+        println!("\n🛡️  Testing overflow protection for Naive algorithm...");
+        let _result = compute_pi(2_000_000, PiAlgorithm::ChudnovskyNaive);
+    }
+
+    #[test]
+    fn test_algorithm_limits() {
+        println!("\n📏 Testing algorithm limits:");
+        
+        // Test within reasonable limits for CI/testing
+        let result = compute_pi(10_000, PiAlgorithm::ChudnovskyNaive);
+        assert!(result.starts_with("3.14159"), "Naive algorithm should work within limits");
+        println!("  ✓ Naive: 10K digits - OK");
+        
+        let result = compute_pi(50_000, PiAlgorithm::ChudnovskyBinarySplitting);
+        assert!(result.starts_with("3.14159"), "Binary splitting should work within limits");
+        println!("  ✓ Binary Splitting: 50K digits - OK");
+        
+        let result = compute_pi(20_000, PiAlgorithm::BorweinQuadratic);
+        assert!(result.starts_with("3.14159"), "Borwein should work within limits");
+        println!("  ✓ Borwein: 20K digits - OK");
+        
+        let result = compute_pi(15_000, PiAlgorithm::MachinFormula);
+        assert!(result.starts_with("3.14159"), "Machin should work within limits");
+        println!("  ✓ Machin: 15K digits - OK");
+        
+        println!("✅ Algorithm limits test passed!");
     }
 }

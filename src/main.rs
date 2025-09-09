@@ -9,10 +9,10 @@ fn main() {
     
     // Выбор алгоритма
     println!("\nДоступные алгоритмы:");
-    println!("1. Чудновский (наивный) - стандартная реализация");
-    println!("2. Чудновский (Binary Splitting) - самый быстрый для больших чисел");
-    println!("3. Формула Мачина - классический быстрый метод");
-    println!("4. Алгоритм Борвейна - квадратичная сходимость");
+    println!("1. Чудновский (наивный) - стандартная реализация (макс: 1M знаков)");
+    println!("2. Чудновский (Binary Splitting) - самый быстрый для больших чисел (макс: 10M знаков)");
+    println!("3. Формула Мачина - классический быстрый метод (макс: 5M знаков)");
+    println!("4. Алгоритм Борвейна - квадратичная сходимость (макс: 2M знаков)");
     
     print!("Выберите алгоритм [1-4, по умолчанию: 2]: ");
     io::stdout().flush().unwrap();
@@ -45,7 +45,12 @@ fn main() {
         1000
     } else {
         match input.parse() {
-            Ok(n) if n > 0 => n,
+            Ok(n) if n > 0 && n <= 50_000_000 => n,
+            Ok(n) if n > 50_000_000 => {
+                println!("⚠️  Слишком большое значение! Максимум: 50,000,000 знаков.");
+                println!("Используется значение по умолчанию: 1000");
+                1000
+            }
             _ => {
                 println!("Неверный ввод. Используется значение по умолчанию: 1000");
                 1000
@@ -64,8 +69,34 @@ fn main() {
     println!("📊 Алгоритм: {}", algorithm_name);
     println!("⏱️  Начинаем вычисление...\n");
 
+    // Проверяем совместимость алгоритма с количеством знаков
+    let max_digits_for_algorithm = match algorithm {
+        PiAlgorithm::ChudnovskyNaive => 1_000_000,
+        PiAlgorithm::ChudnovskyBinarySplitting => 10_000_000,
+        PiAlgorithm::MachinFormula => 5_000_000,
+        PiAlgorithm::BorweinQuadratic => 2_000_000,
+    };
+    
+    if digits > max_digits_for_algorithm {
+        println!("❌ Ошибка: Выбранный алгоритм не поддерживает {} знаков!", digits);
+        println!("📊 Максимум для {}: {} знаков", algorithm_name, max_digits_for_algorithm);
+        println!("💡 Рекомендация: Используйте Binary Splitting для больших вычислений");
+        return;
+    }
+
     let start_time = std::time::Instant::now();
-    let pi_str = pi::compute_pi(digits, algorithm);
+    
+    let pi_str = match std::panic::catch_unwind(|| {
+        pi::compute_pi(digits, algorithm)
+    }) {
+        Ok(result) => result,
+        Err(_) => {
+            println!("❌ Произошла ошибка при вычислении!");
+            println!("💡 Попробуйте уменьшить количество знаков или выберите другой алгоритм");
+            return;
+        }
+    };
+    
     let elapsed = start_time.elapsed();
 
     println!("\n✅ Вычисление завершено!");
