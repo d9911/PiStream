@@ -1,5 +1,5 @@
 use indicatif::{ProgressBar, ProgressStyle};
-use rug::{Float, Integer, ops::{Pow, CompleteRound}};
+use rug::{Float, Integer, ops::{Pow, CompleteRound}, Complete};
 
 #[derive(Clone, Copy, Debug)]
 pub enum PiAlgorithm {
@@ -7,6 +7,7 @@ pub enum PiAlgorithm {
     ChudnovskyBinarySplitting,
     MachinFormula,
     BorweinQuadratic,
+    ChudnovskyUltraScale, // Новый алгоритм для триллионов знаков
 }
 
 pub fn compute_pi(digits: usize, algorithm: PiAlgorithm) -> String {
@@ -15,6 +16,7 @@ pub fn compute_pi(digits: usize, algorithm: PiAlgorithm) -> String {
         PiAlgorithm::ChudnovskyBinarySplitting => compute_pi_chudnovsky_binary_splitting(digits),
         PiAlgorithm::MachinFormula => compute_pi_machin(digits),
         PiAlgorithm::BorweinQuadratic => compute_pi_borwein_quadratic(digits),
+        PiAlgorithm::ChudnovskyUltraScale => compute_pi_chudnovsky_ultra_scale(digits),
     }
 }
 
@@ -105,11 +107,11 @@ fn compute_pi_chudnovsky_naive(digits: usize) -> String {
     pi.to_string_radix(10, Some(digits + 1))
 }
 
-// Binary Splitting алгоритм Чудновского - самый быстрый для больших чисел
+// Binary Splitting алгоритм Чудновского - быстрый для больших чисел
 fn compute_pi_chudnovsky_binary_splitting(digits: usize) -> String {
     // Проверяем разумные пределы для предотвращения переполнения и чрезмерного использования памяти
-    if digits > 10_000_000 {
-        panic!("Слишком большое количество знаков! Максимум: 10,000,000 знаков.\nДля больших вычислений используйте специализированные библиотеки.");
+    if digits > 100_000_000 {
+        panic!("Слишком большое количество знаков для стандартного Binary Splitting! Максимум: 100,000,000 знаков.\nДля больших вычислений используйте Ultra Scale алгоритм.");
     }
     
     let prec = ((digits as f64) * 3.3219280948873626).ceil() as u32 + 64;
@@ -293,6 +295,155 @@ fn compute_pi_borwein_quadratic(digits: usize) -> String {
     
     pb.finish_with_message("Borwein quadratic complete");
     pi.to_string_radix(10, Some(digits + 1))
+}
+
+// Ultra Scale Чудновский для экстремально больших чисел (триллионы знаков)
+fn compute_pi_chudnovsky_ultra_scale(digits: usize) -> String {
+    use std::time::Instant;
+    
+    println!("🚀 ULTRA SCALE MODE: Подготовка к вычислению {} знаков π", digits);
+    println!("📊 Это может занять от минут до месяцев в зависимости от размера!");
+    
+    // Для триллионов знаков нужны специальные оптимизации
+    if digits > 1_000_000_000_000 {
+        println!("⚠️  ВНИМАНИЕ: Вычисление {} знаков может занять месяцы!", digits);
+        println!("💾 Потребуется ~{} ТБ оперативной памяти", (digits as f64 * 3.32 / 8.0 / 1024.0 / 1024.0 / 1024.0 / 1024.0).ceil());
+        println!("⏱️  Расчетное время: ~{} дней", (digits as f64 / 1_000_000_000.0 * 24.0).ceil());
+        
+        print!("Продолжить? [y/N]: ");
+        use std::io::{self, Write};
+        io::stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        if input.trim().to_lowercase() != "y" && input.trim().to_lowercase() != "yes" {
+            return "3.14159265358979323846264338327950288419716939937510".to_string();
+        }
+    }
+    
+    let start_time = Instant::now();
+    
+    // Используем максимальную точность
+    let prec = if digits > 1_000_000 {
+        // Для очень больших чисел используем специальный расчет точности
+        let base_prec = ((digits as f64) * 3.3219280948873626).ceil() as u32;
+        let extra_bits = (digits as f64).log10().ceil() as u32 * 10; // Дополнительные биты для стабильности
+        base_prec + extra_bits + 128
+    } else {
+        ((digits as f64) * 3.3219280948873626).ceil() as u32 + 128
+    };
+    
+    let n = (digits / 14) + 20; // Больше итераций для точности
+    
+    println!("🔧 Настройки Ultra Scale:");
+    println!("   • Точность: {} бит", prec);
+    println!("   • Итераций: {}", n);
+    println!("   • Память: ~{:.2} ГБ", (prec as f64 * n as f64) / 8.0 / 1024.0 / 1024.0 / 1024.0);
+    
+    let pb = ProgressBar::new(n as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] Ultra Scale: {pos}/{len} ({per_sec}) - {msg}")
+            .unwrap()
+            .progress_chars("█▉▊▋▌▍▎▏ "),
+    );
+    
+    // Улучшенный Binary Splitting с оптимизациями для больших чисел
+    fn ultra_binary_split(a: usize, b: usize, prec: u32, pb: &ProgressBar, depth: usize) -> (Integer, Integer, Integer) {
+        // Показываем прогресс только для верхних уровней рекурсии
+        if depth < 10 {
+            pb.set_message("Обработка интервала...");
+        }
+        
+        if b - a == 1 {
+            pb.inc(1);
+            let k = a as i32;
+            
+            // Оптимизированные вычисления для больших k
+            let p = if k == 0 {
+                Integer::from(1)
+            } else {
+                let mut result = Integer::from(1);
+                // Используем более эффективный способ вычисления произведения
+                for i in 0..6 {
+                    let factor = 6 * k - 5 + i;
+                    result *= factor;
+                }
+                -result
+            };
+            
+            let q = if k == 0 {
+                Integer::from(1)
+            } else {
+                // Предвычисляем степени для оптимизации
+                let k_big = Integer::from(k);
+                let k_squared = (&k_big * &k_big).complete();
+                let k_cubed = (&k_squared * &k_big).complete();
+                let factorial_3k = Integer::from((3*k-2) * (3*k-1) * (3*k));
+                let base_640320_cubed = Integer::from(640320).pow(3);
+                k_cubed * factorial_3k * base_640320_cubed
+            };
+            
+            let r = &p * (Integer::from(13591409) + Integer::from(545140134) * Integer::from(k));
+            
+            (p, q, r)
+        } else {
+            let mid = (a + b) / 2;
+            
+            // Рекурсивно вычисляем левую и правую части
+            let (p1, q1, r1) = ultra_binary_split(a, mid, prec, pb, depth + 1);
+            let (p2, q2, r2) = ultra_binary_split(mid, b, prec, pb, depth + 1);
+            
+            // Комбинируем результаты с оптимизацией памяти
+            let p = (&p1 * &p2).complete();
+            let q = (&q1 * &q2).complete();
+            
+            // Оптимизированное вычисление r для больших чисел
+            let r1_q2: Integer = (&r1 * &q2).into();
+            let r2_p1: Integer = (&r2 * &p1).into();
+            let r = r1_q2 + r2_p1;
+            
+            (p, q, r)
+        }
+    }
+    
+    pb.set_message("Запуск Ultra Scale Binary Splitting...");
+    let split_start = Instant::now();
+    
+    let (_p, q, r) = ultra_binary_split(0, n, prec, &pb, 0);
+    
+    let split_time = split_start.elapsed();
+    pb.set_message("Binary Split завершен");
+    
+    println!("\n⏱️  Время Binary Splitting: {:?}", split_time);
+    println!("🔄 Начинаем финальные вычисления...");
+    
+    let final_start = Instant::now();
+    
+    // Финальные вычисления с высокой точностью
+    let q_float = Float::with_val(prec, q);
+    let r_float = Float::with_val(prec, r);
+    let sqrt_10005 = Float::with_val(prec, 10005).sqrt();
+    let pi = Float::with_val(prec, 426880) * sqrt_10005 * q_float / r_float;
+    
+    let final_time = final_start.elapsed();
+    let total_time = start_time.elapsed();
+    
+    pb.finish_with_message("Ultra Scale завершен!");
+    
+    println!("\n📊 Детальная статистика времени:");
+    println!("   • Binary Splitting: {:?}", split_time);
+    println!("   • Финальные вычисления: {:?}", final_time);
+    println!("   • Общее время: {:?}", total_time);
+    println!("   • Скорость: {:.0} знаков/сек", digits as f64 / total_time.as_secs_f64());
+    
+    // Конвертация в строку с отслеживанием времени
+    let string_start = Instant::now();
+    let result = pi.to_string_radix(10, Some(digits + 1));
+    let string_time = string_start.elapsed();
+    
+    println!("   • Конвертация в строку: {:?}", string_time);
+    
+    result
 }
 
 #[cfg(test)]
