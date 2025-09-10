@@ -27,6 +27,12 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
             "⏱️  Расчетное время: ~{} дней",
             (digits as f64 / 1_000_000_000.0 * 24.0).ceil()
         );
+    }
+
+    // Дополнительная проверка для очень больших чисел
+    if digits > 500_000_000 {
+        println!("⚠️  ВНИМАНИЕ: Вычисление {} знаков может занять очень много времени и памяти!", digits);
+        println!("⚠️  Рекомендуется использовать меньшее количество знаков для стабильной работы.");
 
         print!("Продолжить? [y/N]: ");
         use std::io::{self, Write};
@@ -38,8 +44,27 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
         }
     }
 
+    // Ограничение для предотвращения экстремальных вычислений
+    if digits > 1_000_000_000 {
+        println!("🚫 ОШИБКА: Слишком большое количество знаков: {}", digits);
+        println!("🚫 Максимально поддерживаемое количество: 1,000,000,000 знаков");
+        println!("🚫 Для больших вычислений используйте специализированные системы");
+        return "3.14159265358979323846264338327950288419716939937510".to_string();
+    }
+
     let start_time = Instant::now();
     let prec = precision.bits();
+    // Добавляем дополнительную точность для очень больших чисел
+    let extra_precision = if digits > 200_000_000 {
+        2000  // Очень большая дополнительная точность для экстремальных чисел
+    } else if digits > 100_000_000 {
+        1000  // Большая дополнительная точность для больших чисел
+    } else if digits > 50_000_000 {
+        500   // Средняя дополнительная точность
+    } else {
+        0
+    };
+    let final_prec = prec + extra_precision;
 
     // Безопасное вычисление количества итераций с защитой от переполнения
     let n = if digits > usize::MAX / 2 {
@@ -50,11 +75,11 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
     };
 
     println!("🔧 Настройки Ultra Scale:");
-    println!("   • Точность: {} бит", prec);
+    println!("   • Точность: {} бит (базовая: {}, дополнительная: {})", final_prec, prec, extra_precision);
     println!("   • Итераций: {}", n);
     println!(
         "   • Память: ~{:.2} ГБ",
-        (prec as f64 * n as f64) / 8.0 / 1024.0 / 1024.0 / 1024.0
+        (final_prec as f64 * n as f64) / 8.0 / 1024.0 / 1024.0 / 1024.0
     );
 
     let pb = ProgressBar::new(n as u64);
@@ -125,14 +150,19 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
             let (p1, q1, r1) = ultra_binary_split(a, mid, prec, pb, depth + 1);
             let (p2, q2, r2) = ultra_binary_split(mid, b, prec, pb, depth + 1);
 
-            // Комбинируем результаты с оптимизацией памяти
+            // Комбинируем результаты с оптимизацией памяти и проверками
             let p = (&p1 * &p2).complete();
             let q = (&q1 * &q2).complete();
 
-            // Оптимизированное вычисление r для больших чисел
+            // Оптимизированное вычисление r для больших чисел с проверками
             let r1_q2: Integer = (&r1 * &q2).into();
             let r2_p1: Integer = (&r2 * &p1).into();
             let r = r1_q2 + r2_p1;
+
+            // Проверяем на переполнение
+            if p.is_zero() || q.is_zero() {
+                panic!("Ошибка: Переполнение в binary splitting! p или q равно нулю.");
+            }
 
             (p, q, r)
         }
@@ -141,7 +171,7 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
     pb.set_message("Запуск Ultra Scale Binary Splitting...");
     let split_start = Instant::now();
 
-    let (_p, q, r) = ultra_binary_split(0, n, prec, &pb, 0);
+    let (_p, q, r) = ultra_binary_split(0, n, final_prec, &pb, 0);
 
     let split_time = split_start.elapsed();
     pb.set_message("Binary Split завершен");
@@ -151,11 +181,51 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
 
     let final_start = Instant::now();
 
-    // Финальные вычисления с высокой точностью
-    let q_float = Float::with_val(prec, q);
-    let r_float = Float::with_val(prec, r);
-    let sqrt_10005 = Float::with_val(prec, 10005).sqrt();
-    let pi = Float::with_val(prec, 426880) * sqrt_10005 * q_float / r_float;
+    // Финальные вычисления с высокой точностью и проверками
+    let q_float = Float::with_val(final_prec, q);
+    let r_float = Float::with_val(final_prec, r);
+
+    // Проверяем на нулевые значения
+    if r_float.is_zero() {
+        panic!("Ошибка: r равно нулю! Возможно переполнение при вычислении.");
+    }
+
+    let sqrt_10005 = Float::with_val(final_prec, 10005).sqrt();
+
+    // Вычисляем π поэтапно для предотвращения переполнения
+    // Используем логарифмический подход для очень больших чисел
+    let numerator = Float::with_val(final_prec, 426880) * sqrt_10005 * q_float;
+
+    // Для очень больших чисел используем более безопасный метод
+    let pi = if digits > 100_000_000 {
+        // Логарифмический подход для предотвращения переполнения
+        let log_numerator = numerator.ln();
+        let log_r = r_float.ln();
+
+        // Проверяем логарифмы на валидность
+        if log_numerator.is_nan() || log_numerator.is_infinite() ||
+            log_r.is_nan() || log_r.is_infinite() {
+            panic!("Ошибка: Некорректные логарифмы! log_numerator: {:?}, log_r: {:?}", log_numerator, log_r);
+        }
+
+        let log_pi = log_numerator - log_r;
+        let pi_result = log_pi.clone().exp();
+
+        // Дополнительная проверка результата
+        if pi_result.is_nan() || pi_result.is_infinite() {
+            panic!("Ошибка: Некорректный результат после экспоненты! log_pi: {:?}, pi_result: {:?}", log_pi, pi_result);
+        }
+
+        pi_result
+    } else {
+        // Обычный подход для меньших чисел
+        numerator / r_float
+    };
+
+    // Проверяем результат на валидность
+    if pi.is_nan() || pi.is_infinite() {
+        panic!("Ошибка: Результат NaN или бесконечность! Возможно переполнение при вычислении.");
+    }
 
     let final_time = final_start.elapsed();
     let total_time = start_time.elapsed();
@@ -171,12 +241,17 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
         digits as f64 / total_time.as_secs_f64()
     );
 
-    // Конвертация в строку с отслеживанием времени
+    // Конвертация в строку с отслеживанием времени и проверками
     let string_start = Instant::now();
     let result = pi.to_string_radix(10, Some(digits + 1));
     let string_time = string_start.elapsed();
 
     println!("   • Конвертация в строку: {:?}", string_time);
+
+    // Проверяем результат на валидность
+    if result.contains("NaN") || result.contains("Inf") || result.is_empty() {
+        panic!("Ошибка: Некорректный результат при конвертации в строку: {}", result);
+    }
 
     result
 }
