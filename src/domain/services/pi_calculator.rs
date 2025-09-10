@@ -80,7 +80,8 @@ impl<R: PiRepository> PiCalculator<R> {
         match algorithm {
             Algorithm::ChudnovskyNaive
             | Algorithm::ChudnovskyBinarySplitting
-            | Algorithm::ChudnovskyUltraScale => {
+            | Algorithm::ChudnovskyUltraScale
+            | Algorithm::ChudnovskyUltraScaleStreaming => {
                 // Chudnovsky algorithms: approximately digits/14 iterations
                 (digits.value() / 14).saturating_add(20)
             }
@@ -119,6 +120,11 @@ impl<R: PiRepository> PiCalculator<R> {
                 // Similar to binary splitting but with overhead for large numbers
                 let n = digits.value() as f64;
                 (n * n.log2()) / 500_000.0
+            }
+            Algorithm::ChudnovskyUltraScaleStreaming => {
+                // Streaming version with additional overhead for file I/O
+                let n = digits.value() as f64;
+                (n * n.log2()) / 400_000.0
             }
         };
 

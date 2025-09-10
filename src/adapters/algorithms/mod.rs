@@ -2,6 +2,7 @@ pub mod borwein_quadratic;
 pub mod chudnovsky_binary_splitting;
 pub mod chudnovsky_naive;
 pub mod chudnovsky_ultra_scale;
+pub mod chudnovsky_ultra_scale_streaming;
 pub mod machin_formula;
 
 use crate::domain::entities::Algorithm;
@@ -25,6 +26,7 @@ impl AlgorithmRepository {
             AlgorithmInfo::new(Algorithm::MachinFormula, 3),
             AlgorithmInfo::new(Algorithm::BorweinQuadratic, 4),
             AlgorithmInfo::new(Algorithm::ChudnovskyUltraScale, 5),
+            AlgorithmInfo::new(Algorithm::ChudnovskyUltraScaleStreaming, 6),
         ]
     }
 
@@ -39,6 +41,7 @@ impl AlgorithmRepository {
             "machin".to_string(),
             "borwein".to_string(),
             "chudnovsky_ultra".to_string(),
+            "chudnovsky_ultra_streaming".to_string(),
         ]
     }
 }
@@ -72,6 +75,10 @@ impl PiRepository for AlgorithmRepository {
             }
             Algorithm::ChudnovskyUltraScale => {
                 chudnovsky_ultra_scale::compute_pi_chudnovsky_ultra_scale(digits_value, precision)
+            }
+            Algorithm::ChudnovskyUltraScaleStreaming => {
+                chudnovsky_ultra_scale_streaming::compute_pi_chudnovsky_ultra_scale_streaming(digits_value, precision)
+                    .unwrap_or_else(|e| format!("Ошибка потокового вычисления: {}", e))
             }
             Algorithm::BorweinQuadratic => {
                 borwein_quadratic::compute_pi_borwein_quadratic(digits_value, precision)

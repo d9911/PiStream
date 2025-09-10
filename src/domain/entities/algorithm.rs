@@ -8,6 +8,7 @@ pub enum Algorithm {
     MachinFormula,
     BorweinQuadratic,
     ChudnovskyUltraScale,
+    ChudnovskyUltraScaleStreaming,
 }
 
 impl Algorithm {
@@ -19,6 +20,7 @@ impl Algorithm {
             Algorithm::MachinFormula => 5_000_000,
             Algorithm::BorweinQuadratic => 2_000_000,
             Algorithm::ChudnovskyUltraScale => usize::MAX,
+            Algorithm::ChudnovskyUltraScaleStreaming => usize::MAX,
         }
     }
 
@@ -30,6 +32,7 @@ impl Algorithm {
             Algorithm::MachinFormula => "Формула Мачина",
             Algorithm::BorweinQuadratic => "Алгоритм Борвейна",
             Algorithm::ChudnovskyUltraScale => "🚀 ULTRA SCALE Чудновский",
+            Algorithm::ChudnovskyUltraScaleStreaming => "💾 ULTRA SCALE STREAMING Чудновский",
         }
     }
 
@@ -40,13 +43,14 @@ impl Algorithm {
             Algorithm::ChudnovskyBinarySplitting => "быстрый для больших чисел (макс: 100M знаков)",
             Algorithm::MachinFormula => "классический быстрый метод (макс: 5M знаков)",
             Algorithm::BorweinQuadratic => "квадратичная сходимость (макс: 2M знаков)",
-            Algorithm::ChudnovskyUltraScale => "для триллионов знаков (макс: ∞)",
+            Algorithm::ChudnovskyUltraScale => "для триллионов знаков (макс: 100M)",
+            Algorithm::ChudnovskyUltraScaleStreaming => "потоковое сохранение для экстремальных вычислений (макс: ∞)",
         }
     }
 
     /// Returns true if this is the ultra scale algorithm
     pub fn is_ultra_scale(&self) -> bool {
-        matches!(self, Algorithm::ChudnovskyUltraScale)
+        matches!(self, Algorithm::ChudnovskyUltraScale | Algorithm::ChudnovskyUltraScaleStreaming)
     }
 
     /// Validates if the algorithm can handle the requested number of digits
@@ -69,6 +73,7 @@ impl From<u8> for Algorithm {
             3 => Algorithm::MachinFormula,
             4 => Algorithm::BorweinQuadratic,
             5 => Algorithm::ChudnovskyUltraScale,
+            6 => Algorithm::ChudnovskyUltraScaleStreaming,
             _ => Algorithm::ChudnovskyBinarySplitting, // Default
         }
     }
