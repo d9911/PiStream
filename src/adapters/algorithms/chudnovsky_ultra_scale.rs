@@ -182,8 +182,8 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
     let final_start = Instant::now();
 
     // Финальные вычисления с высокой точностью и проверками
-    let q_float = Float::with_val(final_prec, q);
-    let r_float = Float::with_val(final_prec, r);
+    let q_float = Float::with_val(final_prec, q.clone());
+    let r_float = Float::with_val(final_prec, r.clone());
 
     // Проверяем на нулевые значения
     if r_float.is_zero() {
@@ -194,32 +194,105 @@ pub fn compute_pi_chudnovsky_ultra_scale(digits: usize, precision: Precision) ->
 
     // Вычисляем π поэтапно для предотвращения переполнения
     // Используем логарифмический подход для очень больших чисел
-    let numerator = Float::with_val(final_prec, 426880) * sqrt_10005 * q_float;
+    let numerator = Float::with_val(final_prec, 426880) * sqrt_10005.clone() * q_float.clone();
 
     // Для очень больших чисел используем более безопасный метод
-    let pi = if digits > 100_000_000 {
-        // Логарифмический подход для предотвращения переполнения
-        let log_numerator = numerator.ln();
+    let pi = if digits >= 100_000_000 {
+        // Безопасный логарифмический подход с промежуточными проверками
+        // Разбиваем вычисления на более мелкие части для предотвращения переполнения
+        
+    // Отладочная информация о промежуточных значениях
+    println!("🔍 Отладка промежуточных значений:");
+    println!("   q_float: {:?}", q_float);
+    println!("   r_float: {:?}", r_float);
+    println!("   numerator: {:?}", numerator);
+    
+    // Проверяем промежуточные значения перед вычислением логарифмов
+    if numerator.is_infinite() || numerator.is_nan() {
+        panic!("Ошибка: numerator стал бесконечным или NaN! numerator: {:?}", numerator);
+    }
+    
+    if r_float.is_infinite() || r_float.is_nan() {
+        panic!("Ошибка: r_float стал бесконечным или NaN! r_float: {:?}", r_float);
+    }
+
+        // Используем более безопасный подход с масштабированием
+        // Вычисляем логарифмы компонентов отдельно
+        let log_426880 = Float::with_val(final_prec, 426880).ln();
+        let log_sqrt_10005 = sqrt_10005.ln();
+        let log_q = q_float.ln();
         let log_r = r_float.ln();
 
-        // Проверяем логарифмы на валидность
-        if log_numerator.is_nan() || log_numerator.is_infinite() ||
-            log_r.is_nan() || log_r.is_infinite() {
-            panic!("Ошибка: Некорректные логарифмы! log_numerator: {:?}, log_r: {:?}", log_numerator, log_r);
+        // Отладочная информация
+        println!("🔍 Отладка логарифмов:");
+        println!("   log_426880: {:?}", log_426880);
+        println!("   log_sqrt_10005: {:?}", log_sqrt_10005);
+        println!("   log_q: {:?}", log_q);
+        println!("   log_r: {:?}", log_r);
+
+        // Проверяем каждый логарифм отдельно
+        if log_426880.is_infinite() || log_426880.is_nan() ||
+           log_sqrt_10005.is_infinite() || log_sqrt_10005.is_nan() ||
+           log_q.is_infinite() || log_q.is_nan() ||
+           log_r.is_infinite() || log_r.is_nan() {
+            // Если даже отдельные логарифмы переполняются, используем альтернативный подход
+            println!("⚠️  Предупреждение: Обнаружено переполнение в логарифмах компонентов");
+            println!("⚠️  Переключаемся на альтернативный метод вычисления...");
+            
+            // Альтернативный подход: используем более низкую точность для промежуточных вычислений
+            let reduced_prec = final_prec / 2;
+            let log_426880_alt = Float::with_val(reduced_prec, 426880).ln();
+            let log_sqrt_10005_alt = Float::with_val(reduced_prec, 10005).sqrt().ln();
+            let log_q_alt = Float::with_val(reduced_prec, q).ln();
+            let log_r_alt = Float::with_val(reduced_prec, r).ln();
+            
+            // Проверяем альтернативные логарифмы
+            if log_426880_alt.is_infinite() || log_426880_alt.is_nan() ||
+               log_sqrt_10005_alt.is_infinite() || log_sqrt_10005_alt.is_nan() ||
+               log_q_alt.is_infinite() || log_q_alt.is_nan() ||
+               log_r_alt.is_infinite() || log_r_alt.is_nan() {
+                panic!("Ошибка: Даже с пониженной точностью логарифмы переполняются! log_426880: {:?}, log_sqrt_10005: {:?}, log_q: {:?}, log_r: {:?}", 
+                       log_426880_alt, log_sqrt_10005_alt, log_q_alt, log_r_alt);
+            }
+            
+            // Используем альтернативные значения
+            let log_numerator = log_426880_alt + log_sqrt_10005_alt + log_q_alt;
+            let log_pi = log_numerator - log_r_alt;
+            let pi_result = log_pi.clone().exp();
+            
+            // Проверяем результат альтернативного метода
+            if pi_result.is_nan() || pi_result.is_infinite() {
+                panic!("Ошибка: Альтернативный метод также дал некорректный результат! log_pi: {:?}, pi_result: {:?}", log_pi, pi_result);
+            }
+            
+            pi_result
+        } else {
+            // Обычный путь: все логарифмы корректны
+            let log_numerator = log_426880 + log_sqrt_10005 + log_q;
+            
+            // Проверяем финальный логарифм числителя
+            if log_numerator.is_infinite() || log_numerator.is_nan() {
+                panic!("Ошибка: Финальный log_numerator некорректный! log_numerator: {:?}", log_numerator);
+            }
+
+            let log_pi = log_numerator - log_r;
+            let pi_result = log_pi.clone().exp();
+            
+            // Проверяем результат
+            if pi_result.is_nan() || pi_result.is_infinite() {
+                panic!("Ошибка: Некорректный результат после экспоненты! log_pi: {:?}, pi_result: {:?}", log_pi, pi_result);
+            }
+            
+            pi_result
         }
-
-        let log_pi = log_numerator - log_r;
-        let pi_result = log_pi.clone().exp();
-
-        // Дополнительная проверка результата
-        if pi_result.is_nan() || pi_result.is_infinite() {
-            panic!("Ошибка: Некорректный результат после экспоненты! log_pi: {:?}, pi_result: {:?}", log_pi, pi_result);
-        }
-
-        pi_result
     } else {
         // Обычный подход для меньших чисел
-        numerator / r_float
+        println!("🔍 Используем обычный подход для {} знаков", digits);
+        println!("   numerator: {:?}", numerator);
+        println!("   r_float: {:?}", r_float);
+        let result = numerator / r_float;
+        println!("   result: {:?}", result);
+        result
     };
 
     // Проверяем результат на валидность
