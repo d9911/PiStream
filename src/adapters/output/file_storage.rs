@@ -36,6 +36,8 @@ impl FileWriter for FileStorage {
             .replace("(", "")
             .replace(")", "")
             .replace("🚀", "")
+            .replace("💾", "")
+            .replace("🚨", "")
             .trim()
             .to_string();
 

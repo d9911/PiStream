@@ -1,9 +1,28 @@
 use crate::adapters::output::{StreamingPiSaver, PiBlock, utils};
 use crate::domain::value_objects::Precision;
 use indicatif::{ProgressBar, ProgressStyle};
-use rug::{Float, Integer};
+use rug::{ops::Pow, Float, Integer};
 use std::io::{self, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
+
+// Глобальный флаг для прерывания вычислений
+static INTERRUPT_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+/// Устанавливает флаг прерывания
+pub fn request_interrupt() {
+    INTERRUPT_REQUESTED.store(true, Ordering::Relaxed);
+}
+
+/// Проверяет, запрошено ли прерывание
+pub fn is_interrupt_requested() -> bool {
+    INTERRUPT_REQUESTED.load(Ordering::Relaxed)
+}
+
+/// Сбрасывает флаг прерывания
+pub fn reset_interrupt() {
+    INTERRUPT_REQUESTED.store(false, Ordering::Relaxed);
+}
 
 /// Вычисляет π с потоковым сохранением для очень больших чисел
 pub fn compute_pi_chudnovsky_ultra_scale_streaming(
@@ -104,43 +123,127 @@ pub fn compute_pi_chudnovsky_ultra_scale_streaming(
     println!("🔄 Начинаем финальные вычисления с потоковым сохранением...");
     let final_start = Instant::now();
 
-    // Вычисляем π по блокам для предотвращения переполнения
-    let block_size = 10000; // Размер блока для вычисления
+    // Вычисляем π целиком, а затем разбиваем на блоки для сохранения
+    println!("🧮 Вычисляем π с точностью {} бит...", final_prec);
+    
+    // Создаем Float с нужной точностью
+    let q_float = Float::with_val(final_prec as u32, q.clone());
+    let r_float = Float::with_val(final_prec as u32, r.clone());
+
+    // Проверяем на нулевые значения
+    if r_float.is_zero() {
+        return Err("Ошибка: r равно нулю! Возможно переполнение при вычислении.".to_string());
+    }
+
+    // Предвычисляем константы
+    let sqrt_10005 = Float::with_val(final_prec as u32, 10005).sqrt();
+    
+    // Отладочная информация
+    println!("🔍 Отладочная информация:");
+    println!("   • q_float: {}", q_float);
+    println!("   • r_float: {}", r_float);
+    println!("   • sqrt_10005: {}", sqrt_10005);
+    println!("   • q_float.is_zero(): {}", q_float.is_zero());
+    println!("   • r_float.is_zero(): {}", r_float.is_zero());
+    
+    // Вычисляем π используя формулу Чудновского: π = 426880 * sqrt(10005) * q / r
+    println!("🔢 Применяем формулу Чудновского...");
+    let pi_result = Float::with_val(final_prec as u32, 426880) * &sqrt_10005 * &q_float / &r_float;
+    
+    // Проверяем результат
+    if pi_result.is_nan() || pi_result.is_infinite() {
+        println!("❌ Результат некорректный:");
+        println!("   • pi_result.is_nan(): {}", pi_result.is_nan());
+        println!("   • pi_result.is_infinite(): {}", pi_result.is_infinite());
+        println!("   • pi_result: {}", pi_result);
+        return Err("Ошибка: Некорректный результат вычисления π!".to_string());
+    }
+    
+    println!("✅ π вычислен успешно! Разбиваем на блоки для сохранения...");
+    
+    // Конвертируем в строку с достаточной точностью
+    let pi_str = pi_result.to_string_radix(10, Some(digits + 10));
+    
+    // Убираем "3." в начале
+    let digits_only = if pi_str.starts_with("3.") {
+        &pi_str[2..]
+    } else if pi_str.starts_with("3") {
+        &pi_str[1..]
+    } else {
+        &pi_str
+    };
+    
+    println!("📊 Получено {} цифр π", digits_only.len());
+    
+    // Размер блока для сохранения
+    let block_size = 10000;
     let total_blocks = (digits + block_size - 1) / block_size;
     
+    println!("📊 Параметры сохранения:");
+    println!("   • Размер блока: {}", block_size);
+    println!("   • Всего блоков: {}", total_blocks);
+    
     pb.set_length(total_blocks as u64);
-    pb.set_message("Вычисление блоков π...");
+    pb.set_message("Сохранение блоков π...");
+
+    let mut processed_digits = 0;
 
     for block_num in 0..total_blocks {
+        // Проверяем на прерывание
+        if is_interrupt_requested() {
+            println!("🛑 Прерывание запрошено пользователем!");
+            println!("📊 Обработано блоков: {}/{} ({:.1}%)", 
+                    block_num, total_blocks, 
+                    block_num as f64 / total_blocks as f64 * 100.0);
+            println!("💾 Частичные результаты сохранены в файле: {}", stream_file);
+            return Err("Вычисления прерваны пользователем".to_string());
+        }
+        
         let start_pos = block_num * block_size;
         let end_pos = std::cmp::min(start_pos + block_size, digits);
         let current_block_size = end_pos - start_pos;
         
-        // Вычисляем π для текущего блока
-        let pi_block = compute_pi_block(
-            start_pos, 
-            current_block_size, 
-            final_prec as u32, 
-            &q, 
-            &r, 
-            block_num
-        )?;
+        // Извлекаем нужный диапазон цифр
+        let block_digits = if start_pos >= digits_only.len() {
+            "0".repeat(current_block_size)
+        } else {
+            let end_pos_actual = std::cmp::min(start_pos + current_block_size, digits_only.len());
+            let result = &digits_only[start_pos..end_pos_actual];
+            if result.len() < current_block_size {
+                format!("{}{}", result, "0".repeat(current_block_size - result.len()))
+            } else {
+                result.to_string()
+            }
+        };
+        
+        // Создаем блок для сохранения
+        let pi_block = PiBlock {
+            block_number: block_num,
+            digits: block_digits,
+            start_position: start_pos,
+            end_position: start_pos + current_block_size,
+            timestamp: Instant::now(),
+        };
         
         // Отправляем блок для сохранения
         saver.send_block(pi_block)?;
         
+        processed_digits += current_block_size;
         pb.inc(1);
         
-        // Периодически выводим статистику
+        // Обновления прогресса
         if block_num % 1000 == 0 || block_num == total_blocks - 1 {
             let elapsed = final_start.elapsed();
             let speed = if elapsed.as_secs() > 0 {
-                (block_num + 1) as f64 / elapsed.as_secs_f64()
+                processed_digits as f64 / elapsed.as_secs_f64()
             } else {
                 0.0
             };
-            println!("📊 Блоков обработано: {}/{}, скорость: {:.2} блоков/сек", 
-                    block_num + 1, total_blocks, speed);
+            
+            println!("📊 Прогресс: {}/{} блоков ({:.1}%), скорость: {:.0} знаков/сек", 
+                    block_num + 1, total_blocks, 
+                    (block_num + 1) as f64 / total_blocks as f64 * 100.0,
+                    speed);
         }
     }
 
@@ -171,122 +274,6 @@ pub fn compute_pi_chudnovsky_ultra_scale_streaming(
     Ok(result)
 }
 
-/// Вычисляет блок π с заданной позицией
-fn compute_pi_block(
-    start_pos: usize,
-    block_size: usize,
-    precision: u32,
-    q: &Integer,
-    r: &Integer,
-    block_number: usize,
-) -> Result<PiBlock, String> {
-    // Создаем Float с нужной точностью
-    let q_float = Float::with_val(precision, q.clone());
-    let r_float = Float::with_val(precision, r.clone());
-
-    // Проверяем на нулевые значения
-    if r_float.is_zero() {
-        return Err("Ошибка: r равно нулю! Возможно переполнение при вычислении.".to_string());
-    }
-
-    let sqrt_10005 = Float::with_val(precision, 10005).sqrt();
-    
-    // Вычисляем π для блока
-    let _numerator = Float::with_val(precision, 426880) * sqrt_10005.clone() * q_float.clone();
-    
-    // Используем безопасный логарифмический подход
-    let log_426880 = Float::with_val(precision, 426880).ln();
-    let log_sqrt_10005 = sqrt_10005.ln();
-    let log_q = q_float.ln();
-    let log_r = r_float.ln();
-
-    // Проверяем логарифмы
-    if log_426880.is_infinite() || log_426880.is_nan() ||
-       log_sqrt_10005.is_infinite() || log_sqrt_10005.is_nan() ||
-       log_q.is_infinite() || log_q.is_nan() ||
-       log_r.is_infinite() || log_r.is_nan() {
-        
-        // Используем альтернативный подход с пониженной точностью
-        let reduced_prec = precision / 2;
-        let log_426880_alt = Float::with_val(reduced_prec, 426880).ln();
-        let log_sqrt_10005_alt = Float::with_val(reduced_prec, 10005).sqrt().ln();
-        let log_q_alt = Float::with_val(reduced_prec, q).ln();
-        let log_r_alt = Float::with_val(reduced_prec, r).ln();
-        
-        if log_426880_alt.is_infinite() || log_426880_alt.is_nan() ||
-           log_sqrt_10005_alt.is_infinite() || log_sqrt_10005_alt.is_nan() ||
-           log_q_alt.is_infinite() || log_q_alt.is_nan() ||
-           log_r_alt.is_infinite() || log_r_alt.is_nan() {
-            return Err("Ошибка: Даже с пониженной точностью логарифмы переполняются!".to_string());
-        }
-        
-        let log_numerator = log_426880_alt + log_sqrt_10005_alt + log_q_alt;
-        let log_pi = log_numerator - log_r_alt;
-        let pi_result = log_pi.exp();
-        
-        if pi_result.is_nan() || pi_result.is_infinite() {
-            return Err("Ошибка: Альтернативный метод также дал некорректный результат!".to_string());
-        }
-        
-        // Извлекаем нужные цифры
-        let pi_str = pi_result.to_string_radix(10, Some(block_size + 10));
-        let digits = extract_digits_from_pi_string(&pi_str, start_pos, block_size);
-        
-        Ok(PiBlock {
-            block_number,
-            digits,
-            start_position: start_pos,
-            end_position: start_pos + block_size,
-            timestamp: Instant::now(),
-        })
-    } else {
-        // Обычный путь
-        let log_numerator = log_426880 + log_sqrt_10005 + log_q;
-        let log_pi = log_numerator - log_r;
-        let pi_result = log_pi.exp();
-        
-        if pi_result.is_nan() || pi_result.is_infinite() {
-            return Err("Ошибка: Некорректный результат после экспоненты!".to_string());
-        }
-        
-        // Извлекаем нужные цифры
-        let pi_str = pi_result.to_string_radix(10, Some(block_size + 10));
-        let digits = extract_digits_from_pi_string(&pi_str, start_pos, block_size);
-        
-        Ok(PiBlock {
-            block_number,
-            digits,
-            start_position: start_pos,
-            end_position: start_pos + block_size,
-            timestamp: Instant::now(),
-        })
-    }
-}
-
-/// Извлекает цифры из строки π
-fn extract_digits_from_pi_string(pi_str: &str, start_pos: usize, block_size: usize) -> String {
-    // Убираем "3." в начале
-    let digits_only = if pi_str.starts_with("3.") {
-        &pi_str[2..]
-    } else if pi_str.starts_with("3") {
-        &pi_str[1..]
-    } else {
-        pi_str
-    };
-    
-    // Извлекаем нужный диапазон
-    let end_pos = std::cmp::min(start_pos + block_size, digits_only.len());
-    if start_pos >= digits_only.len() {
-        return "0".repeat(block_size);
-    }
-    
-    let result = &digits_only[start_pos..end_pos];
-    if result.len() < block_size {
-        format!("{}{}", result, "0".repeat(block_size - result.len()))
-    } else {
-        result.to_string()
-    }
-}
 
 /// Binary splitting с потоковым сохранением промежуточных результатов
 fn ultra_binary_split_streaming(
@@ -297,10 +284,33 @@ fn ultra_binary_split_streaming(
     saver: &StreamingPiSaver,
 ) -> Result<(Integer, Integer, Integer), String> {
     if b - a == 1 {
-        // Базовый случай
-        let p = Integer::from(1);
-        let q = Integer::from(1);
-        let r = Integer::from(1);
+        // Базовый случай - правильные вычисления по формуле Чудновского
+        let k = a as i32;
+        
+        // P(a,b) = -(6k-5)(6k-4)(6k-3)(6k-2)(6k-1)(6k) for k > 0, else 1
+        let p = if k == 0 {
+            Integer::from(1)
+        } else {
+            let mut result = Integer::from(1);
+            for i in 0..6 {
+                result *= 6 * k - 5 + i;
+            }
+            -result
+        };
+
+        // Q(a,b) = k^3 * (3k-1)(3k-2)(3k) * 640320^3 for k > 0, else 1
+        let q = if k == 0 {
+            Integer::from(1)
+        } else {
+            let k_cubed = Integer::from(k).pow(3);
+            let factorial_part =
+                Integer::from(3 * k - 2) * Integer::from(3 * k - 1) * Integer::from(3 * k);
+            let base_power = Integer::from(640320).pow(3);
+            k_cubed * factorial_part * base_power
+        };
+
+        // R(a,b) = P(a,b) * (13591409 + 545140134*k)
+        let r = &p * (Integer::from(13591409) + Integer::from(545140134) * Integer::from(k));
         
         // Периодически обновляем прогресс
         if a % 10000 == 0 {
@@ -318,7 +328,9 @@ fn ultra_binary_split_streaming(
         // Объединяем результаты
         let p = (&p1 * &p2).into();
         let q = (&q1 * &q2).into();
-        let r = (&r1 * &r2).into();
+        let r_temp1: Integer = (&r1 * &q2).into();
+        let r_temp2: Integer = (&r2 * &p1).into();
+        let r = r_temp1 + r_temp2;
         
         // Обновляем прогресс
         pb.inc(1);

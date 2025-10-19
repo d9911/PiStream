@@ -1,8 +1,23 @@
 use pi_stream_terminal::{Digits, FileWriter, PiComputationUseCase, PiStreamApp, UiPresenter};
 use std::process;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
+    // Настройка обработки сигналов для корректного прерывания
+    let interrupt_flag = Arc::new(AtomicBool::new(false));
+    let flag_clone = interrupt_flag.clone();
+    
+    ctrlc::set_handler(move || {
+        println!("\n🛑 Получен сигнал прерывания (Ctrl+C)");
+        println!("💡 Завершаем вычисления корректно...");
+        flag_clone.store(true, Ordering::Relaxed);
+        
+        // Вызываем функцию прерывания из модуля алгоритма
+        pi_stream_terminal::request_interrupt();
+    }).expect("Ошибка настройки обработчика сигналов");
+
     // Setup application with hexagonal architecture
     let (use_case, presenter, file_writer, config) = PiStreamApp::setup();
 

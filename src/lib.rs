@@ -14,6 +14,9 @@ pub use ports::{
     AlgorithmInfo, FileWriter, PiComputationUseCase, PiRepository, ProgressReporter, UiPresenter,
 };
 
+// Re-export interrupt functions for signal handling
+pub use adapters::algorithms::chudnovsky_ultra_scale_streaming::{request_interrupt, is_interrupt_requested, reset_interrupt};
+
 // Legacy module for backward compatibility (will be removed later)
 pub mod pi;
 

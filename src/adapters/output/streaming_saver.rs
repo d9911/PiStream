@@ -253,7 +253,8 @@ pub mod utils {
             .map_err(|e| format!("Ошибка создания файла: {}", e))?;
         
         use std::io::Write;
-        writeln!(file, "π = 3.{}", &digits[1..]) // Пропускаем первую цифру "3"
+        // Просто записываем цифры с "3." в начале
+        writeln!(file, "π = 3.{}", digits)
             .map_err(|e| format!("Ошибка записи: {}", e))?;
         
         Ok(())
