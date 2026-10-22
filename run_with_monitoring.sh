@@ -14,7 +14,7 @@ fi
 
 # Компилируем проект
 echo "🔨 Компилируем проект..."
-if ! cargo build --release; then
+if ! cargo build --release --locked --bin pistream-cli; then
     echo "❌ Ошибка компиляции!"
     exit 1
 fi
@@ -69,7 +69,7 @@ monitor_process() {
 
 # Запускаем приложение в фоне
 echo "🎯 Запускаем PiStreamTerminal..."
-./target/release/PiStreamTerminal &
+./target/release/pistream-cli &
 APP_PID=$!
 
 # Даем время на запуск

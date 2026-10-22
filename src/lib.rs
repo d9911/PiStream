@@ -15,7 +15,13 @@ pub use ports::{
 };
 
 // Re-export interrupt functions for signal handling
-pub use adapters::algorithms::chudnovsky_ultra_scale_streaming::{request_interrupt, is_interrupt_requested, reset_interrupt};
+pub use adapters::algorithms::chudnovsky_ultra_scale_streaming::{
+    is_interrupt_requested, request_interrupt, reset_interrupt,
+};
+
+pub mod calculation;
+pub mod desktop;
+pub use pi::{compute_pi, PiAlgorithm};
 
 // Legacy module for backward compatibility (will be removed later)
 pub mod pi;

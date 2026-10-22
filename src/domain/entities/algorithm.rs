@@ -44,13 +44,18 @@ impl Algorithm {
             Algorithm::MachinFormula => "классический быстрый метод (макс: 5M знаков)",
             Algorithm::BorweinQuadratic => "квадратичная сходимость (макс: 2M знаков)",
             Algorithm::ChudnovskyUltraScale => "для триллионов знаков (макс: 100M)",
-            Algorithm::ChudnovskyUltraScaleStreaming => "потоковое сохранение для экстремальных вычислений (макс: ∞)",
+            Algorithm::ChudnovskyUltraScaleStreaming => {
+                "потоковое сохранение для экстремальных вычислений (макс: ∞)"
+            }
         }
     }
 
     /// Returns true if this is the ultra scale algorithm
     pub fn is_ultra_scale(&self) -> bool {
-        matches!(self, Algorithm::ChudnovskyUltraScale | Algorithm::ChudnovskyUltraScaleStreaming)
+        matches!(
+            self,
+            Algorithm::ChudnovskyUltraScale | Algorithm::ChudnovskyUltraScaleStreaming
+        )
     }
 
     /// Validates if the algorithm can handle the requested number of digits
@@ -86,7 +91,10 @@ mod tests {
     #[test]
     fn test_algorithm_max_digits() {
         assert_eq!(Algorithm::ChudnovskyNaive.max_digits(), 1_000_000);
-        assert_eq!(Algorithm::ChudnovskyBinarySplitting.max_digits(), 100_000_000);
+        assert_eq!(
+            Algorithm::ChudnovskyBinarySplitting.max_digits(),
+            100_000_000
+        );
         assert_eq!(Algorithm::MachinFormula.max_digits(), 5_000_000);
         assert_eq!(Algorithm::BorweinQuadratic.max_digits(), 2_000_000);
         assert_eq!(Algorithm::ChudnovskyUltraScale.max_digits(), usize::MAX);
@@ -121,4 +129,3 @@ mod tests {
         assert!(Algorithm::ChudnovskyUltraScale.is_ultra_scale());
     }
 }
-

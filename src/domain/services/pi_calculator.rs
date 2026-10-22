@@ -262,7 +262,7 @@ mod tests {
         // Chudnovsky algorithms
         let iterations =
             calculator.estimate_iterations(Algorithm::ChudnovskyBinarySplitting, digits);
-        assert!(iterations >= 100 && iterations <= 150);
+        assert!((100..=150).contains(&iterations));
 
         // Borwein should need fewer iterations due to quadratic convergence
         let borwein_iterations =
@@ -270,4 +270,3 @@ mod tests {
         assert!(borwein_iterations < iterations);
     }
 }
-

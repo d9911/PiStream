@@ -87,7 +87,9 @@ impl TryFrom<String> for Digits {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let parsed = value.trim().parse::<usize>()
+        let parsed = value
+            .trim()
+            .parse::<usize>()
             .map_err(|_| "Неверный формат числа".to_string())?;
         Digits::new(parsed)
     }
@@ -97,7 +99,9 @@ impl TryFrom<&str> for Digits {
     type Error = String;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let parsed = value.trim().parse::<usize>()
+        let parsed = value
+            .trim()
+            .parse::<usize>()
             .map_err(|_| "Неверный формат числа".to_string())?;
         Digits::new(parsed)
     }
@@ -154,7 +158,10 @@ mod tests {
         assert_eq!(Digits::new(1_500).unwrap().formatted(), "1.5 тыс");
         assert_eq!(Digits::new(2_500_000).unwrap().formatted(), "2.5 млн");
         assert_eq!(Digits::new(3_500_000_000).unwrap().formatted(), "3.5 млрд");
-        assert_eq!(Digits::new(4_500_000_000_000).unwrap().formatted(), "4.5 трлн");
+        assert_eq!(
+            Digits::new(4_500_000_000_000).unwrap().formatted(),
+            "4.5 трлн"
+        );
     }
 
     #[test]
@@ -172,4 +179,3 @@ mod tests {
         assert!(zero.is_err());
     }
 }
-

@@ -39,5 +39,3 @@ impl Default for AppConfig {
         Self::new()
     }
 }
-
-

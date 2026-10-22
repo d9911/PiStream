@@ -12,4 +12,3 @@ pub trait FileWriter {
     /// Generates a unique filename for π results
     fn generate_pi_filename(&self, digits: usize, algorithm_name: &str) -> String;
 }
-

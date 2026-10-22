@@ -13,4 +13,3 @@ pub trait PiRepository {
         precision: Precision,
     ) -> Result<String, String>;
 }
-

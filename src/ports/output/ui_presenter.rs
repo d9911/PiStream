@@ -52,4 +52,3 @@ pub trait UiPresenter {
     /// Prompts for ultra scale confirmation
     fn prompt_ultra_scale_confirmation(&self, digits: usize) -> bool;
 }
-

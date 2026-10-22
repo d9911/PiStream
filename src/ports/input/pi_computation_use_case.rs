@@ -1,23 +1,27 @@
-use async_trait::async_trait;
 use crate::domain::entities::{Algorithm, PiComputation};
-use crate::domain::value_objects::Digits;
 use crate::domain::services::ComputationEstimate;
+use crate::domain::value_objects::Digits;
+use async_trait::async_trait;
 
 /// Input port for π computation use cases
 #[async_trait]
 pub trait PiComputationUseCase {
     /// Computes π with the given algorithm and digits
-    async fn compute_pi(&self, algorithm: Algorithm, digits: Digits) -> Result<PiComputation, String>;
-    
+    async fn compute_pi(
+        &self,
+        algorithm: Algorithm,
+        digits: Digits,
+    ) -> Result<PiComputation, String>;
+
     /// Validates if a computation is feasible
     fn validate_computation(&self, algorithm: Algorithm, digits: Digits) -> Result<(), String>;
-    
+
     /// Estimates resources needed for a computation
     fn estimate_resources(&self, algorithm: Algorithm, digits: Digits) -> ComputationEstimate;
-    
+
     /// Lists available algorithms
     fn list_algorithms(&self) -> Vec<AlgorithmInfo>;
-    
+
     /// Gets algorithm by choice number
     fn get_algorithm_by_choice(&self, choice: u8) -> Algorithm;
 }
@@ -46,7 +50,9 @@ impl AlgorithmInfo {
     }
 
     pub fn format_for_menu(&self) -> String {
-        format!("{}. {} - {}", self.choice_number, self.name, self.description)
+        format!(
+            "{}. {} - {}",
+            self.choice_number, self.name, self.description
+        )
     }
 }
-

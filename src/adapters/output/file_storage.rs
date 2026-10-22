@@ -44,4 +44,3 @@ impl FileWriter for FileStorage {
         format!("pi_{}_digits_{}.txt", digits, safe_algorithm_name)
     }
 }
-

@@ -1,12 +1,16 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use pi_stream_terminal::{PiAlgorithm, compute_pi};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use pi_stream_terminal::{compute_pi, PiAlgorithm};
+use std::hint::black_box;
 
 fn benchmark_algorithms_small(c: &mut Criterion) {
     let mut group = c.benchmark_group("Pi Algorithms - Small (50 digits)");
 
     let algorithms = [
         (PiAlgorithm::ChudnovskyNaive, "Chudnovsky_Naive"),
-        (PiAlgorithm::ChudnovskyBinarySplitting, "Chudnovsky_BinarySplitting"),
+        (
+            PiAlgorithm::ChudnovskyBinarySplitting,
+            "Chudnovsky_BinarySplitting",
+        ),
         (PiAlgorithm::MachinFormula, "Machin_Formula"),
         (PiAlgorithm::BorweinQuadratic, "Borwein_Quadratic"),
     ];
@@ -25,7 +29,10 @@ fn benchmark_algorithms_medium(c: &mut Criterion) {
 
     let algorithms = [
         (PiAlgorithm::ChudnovskyNaive, "Chudnovsky_Naive"),
-        (PiAlgorithm::ChudnovskyBinarySplitting, "Chudnovsky_BinarySplitting"),
+        (
+            PiAlgorithm::ChudnovskyBinarySplitting,
+            "Chudnovsky_BinarySplitting",
+        ),
         (PiAlgorithm::MachinFormula, "Machin_Formula"),
         (PiAlgorithm::BorweinQuadratic, "Borwein_Quadratic"),
     ];
@@ -49,8 +56,13 @@ fn benchmark_binary_splitting_scaling(c: &mut Criterion) {
             BenchmarkId::new("BinarySplitting", digits),
             &digits,
             |b, &digits| {
-                b.iter(|| compute_pi(black_box(digits), black_box(PiAlgorithm::ChudnovskyBinarySplitting)))
-            }
+                b.iter(|| {
+                    compute_pi(
+                        black_box(digits),
+                        black_box(PiAlgorithm::ChudnovskyBinarySplitting),
+                    )
+                })
+            },
         );
     }
 
@@ -68,7 +80,7 @@ fn benchmark_borwein_scaling(c: &mut Criterion) {
             &digits,
             |b, &digits| {
                 b.iter(|| compute_pi(black_box(digits), black_box(PiAlgorithm::BorweinQuadratic)))
-            }
+            },
         );
     }
 
@@ -108,7 +120,12 @@ fn benchmark_precision_impact(c: &mut Criterion) {
 
     for (digits, name) in precisions {
         group.bench_function(name, |b| {
-            b.iter(|| compute_pi(black_box(digits), black_box(PiAlgorithm::ChudnovskyBinarySplitting)))
+            b.iter(|| {
+                compute_pi(
+                    black_box(digits),
+                    black_box(PiAlgorithm::ChudnovskyBinarySplitting),
+                )
+            })
         });
     }
 

@@ -18,4 +18,3 @@ pub trait ProgressReporter {
     /// Called to set the current position
     fn set_position(&self, position: u64);
 }
-

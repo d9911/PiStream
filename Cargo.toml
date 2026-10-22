@@ -1,19 +1,26 @@
 [package]
 name = "PiStreamTerminal"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+rust-version = "1.94"
+default-run = "PiStreamTerminal"
+description = "A local desktop workspace for computing pi with arbitrary precision"
+publish = false
 
 [dependencies]
-rug = "1.22"
-indicatif = "0.17"
-rayon = "1.8"
-async-trait = "0.1"
-tokio = { version = "1.0", features = ["full"] }
-chrono = { version = "0.4", features = ["serde"] }
-ctrlc = "3.4"
+rug = "1.30"
+indicatif = "0.18"
+rayon = "1.12"
+async-trait = "0.1.92"
+tokio = { version = "1.54", features = ["full"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+ctrlc = "3.5.2"
+
+eframe = { version = "0.35", default-features = false, features = ["accesskit", "default_fonts", "glow", "x11", "wayland"] }
+rfd = "0.17"
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8"
 
 [[bench]]
 name = "pi_benchmarks"
@@ -26,3 +33,11 @@ path = "src/lib.rs"
 [[bin]]
 name = "PiStreamTerminal"
 path = "src/main.rs"
+
+[[bin]]
+name = "pistream-cli"
+path = "src/bin/pistream-cli.rs"
+
+[profile.release]
+lto = "thin"
+strip = true

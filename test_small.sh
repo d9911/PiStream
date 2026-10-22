@@ -1,33 +1,4 @@
-#!/bin/bash
-
-# Тест с небольшим количеством знаков для проверки правильности
-echo "🧪 Тестируем вычисление π с небольшим количеством знаков"
-echo "======================================================"
-
-# Компилируем
-echo "🔨 Компилируем..."
-cargo build
-
-# Запускаем с небольшим количеством знаков
-echo "🚀 Запускаем тест с 1000 знаков..."
-echo "6" | echo "1000" | echo "y" | ./target/debug/PiStreamTerminal
-
-echo ""
-echo "📊 Проверяем результат..."
-
-# Проверяем файл результата
-if [ -f "pi_stream_1000_digits.txt" ]; then
-    echo "✅ Файл создан: pi_stream_1000_digits.txt"
-    
-    # Показываем первые несколько строк
-    echo "📝 Первые строки файла:"
-    head -5 pi_stream_1000_digits.txt
-    
-    # Проверяем формат
-    echo ""
-    echo "🔍 Проверка формата:"
-    grep -v "^#" pi_stream_1000_digits.txt | head -3
-    
-else
-    echo "❌ Файл не создан!"
-fi
+#!/bin/sh
+set -eu
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec sh "$project_dir/test_pi_correctness.sh"

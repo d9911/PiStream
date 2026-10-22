@@ -1,1 +1,6 @@
 /target
+/dist/
+.DS_Store
+*.log
+pi_stream_*_digits.txt
+pi_stream_*_digits.txt.*

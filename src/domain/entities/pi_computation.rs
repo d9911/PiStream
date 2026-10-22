@@ -188,4 +188,3 @@ mod tests {
         assert!(efficiency.unwrap() > 0.0);
     }
 }
-

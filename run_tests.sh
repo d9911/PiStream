@@ -33,7 +33,7 @@ check_result() {
 # 1. Компиляция проекта
 print_section "Компиляция проекта"
 echo "Компилируем в release режиме для лучшей производительности..."
-cargo build --release
+cargo build --release --locked --bin pistream-cli
 check_result "Compilation"
 
 # 2. Unit тесты
@@ -53,16 +53,16 @@ print_section "Quick Performance Test"
 echo "Тестируем производительность всех алгоритмов на 100 знаках..."
 
 echo "  🔸 Binary Splitting:"
-time echo -e "2\n100" | cargo run --release --quiet 2>/dev/null | grep "Время выполнения"
+time echo -e "2\n100" | cargo run --release --locked --bin pistream-cli --quiet 2>/dev/null | grep "Время выполнения"
 
 echo "  🔸 Borwein Quadratic:"
-time echo -e "4\n100" | cargo run --release --quiet 2>/dev/null | grep "Время выполнения"
+time echo -e "4\n100" | cargo run --release --locked --bin pistream-cli --quiet 2>/dev/null | grep "Время выполнения"
 
 echo "  🔸 Machin Formula:"
-time echo -e "3\n100" | cargo run --release --quiet 2>/dev/null | grep "Время выполнения"
+time echo -e "3\n100" | cargo run --release --locked --bin pistream-cli --quiet 2>/dev/null | grep "Время выполнения"
 
 echo "  🔸 Naive Chudnovsky:"
-time echo -e "1\n100" | cargo run --release --quiet 2>/dev/null | grep "Время выполнения"
+time echo -e "1\n100" | cargo run --release --locked --bin pistream-cli --quiet 2>/dev/null | grep "Время выполнения"
 
 # 5. Тест на больших числах (опционально)
 print_section "Large Number Test (Optional)"
@@ -71,7 +71,7 @@ echo "Нажмите Enter для продолжения или Ctrl+C для п
 read -r
 
 echo "Вычисляем 5000 знаков π с Binary Splitting..."
-time echo -e "2\n5000" | cargo run --release --quiet 2>/dev/null | grep "Время выполнения"
+time echo -e "2\n5000" | cargo run --release --locked --bin pistream-cli --quiet 2>/dev/null | grep "Время выполнения"
 check_result "Large number test"
 
 # 6. Бенчмарки (если установлен criterion)
@@ -99,7 +99,7 @@ EXPECTED_PI_50="3.14159265358979323846264338327950288419716939937511"
 
 echo "Проверяем каждый алгоритм на 50 знаках..."
 for i in 1 2 3 4; do
-    RESULT=$(echo -e "$i\n50" | cargo run --release --quiet 2>/dev/null | grep "π =" | cut -d' ' -f3)
+    RESULT=$(echo -e "$i\n50" | cargo run --release --locked --bin pistream-cli --quiet 2>/dev/null | grep "π =" | cut -d' ' -f3)
     RESULT_50=${RESULT:0:52}
     
     if [ "$RESULT_50" = "$EXPECTED_PI_50" ]; then

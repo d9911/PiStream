@@ -117,7 +117,7 @@ impl UiPresenter for ConsolePresenter {
     fn prompt_save_to_file(&self) -> bool {
         print!("Сохранить результат в файл? (y/n): ");
         io::stdout().flush().unwrap();
-        
+
         let mut input = String::new();
         if io::stdin().read_line(&mut input).is_err() {
             println!("Ошибка чтения ввода. Используем значение по умолчанию: n");
@@ -161,7 +161,7 @@ impl UiPresenter for ConsolePresenter {
         println!("Вы действительно хотите вычислить {} знаков π?", digits);
         print!("Это может занять много времени! Продолжить? (y/n): ");
         io::stdout().flush().unwrap();
-        
+
         let mut input = String::new();
         if io::stdin().read_line(&mut input).is_err() {
             println!("Ошибка чтения ввода. Используем значение по умолчанию: n");

@@ -46,7 +46,7 @@ impl Precision {
 
     /// Returns the precision in bytes
     pub fn bytes(&self) -> u64 {
-        (self.0 as u64 + 7) / 8 // Round up to nearest byte
+        (self.0 as u64).div_ceil(8) // Round up to nearest byte
     }
 
     /// Returns estimated memory usage in MB
@@ -152,4 +152,3 @@ mod tests {
         assert_eq!(format!("{}", large), "5.1M бит");
     }
 }
-

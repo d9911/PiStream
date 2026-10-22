@@ -48,4 +48,3 @@ impl<R: PiRepository + Send + Sync> PiComputationUseCase for CliHandler<R> {
         Algorithm::from(choice)
     }
 }
-

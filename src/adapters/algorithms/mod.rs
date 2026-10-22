@@ -63,7 +63,11 @@ impl PiRepository for AlgorithmRepository {
         let digits_value = digits.value();
 
         // Run computation in a blocking task since the algorithms are synchronous
-        tokio::task::spawn_blocking(move || match algorithm {
+        tokio::task::spawn_blocking(move || {
+            if algorithm == Algorithm::ChudnovskyUltraScaleStreaming {
+                return chudnovsky_ultra_scale_streaming::compute_pi_chudnovsky_ultra_scale_streaming(digits_value, precision);
+            }
+            Ok(match algorithm {
             Algorithm::ChudnovskyNaive => {
                 chudnovsky_naive::compute_pi_chudnovsky_naive(digits_value, precision)
             }
@@ -76,16 +80,14 @@ impl PiRepository for AlgorithmRepository {
             Algorithm::ChudnovskyUltraScale => {
                 chudnovsky_ultra_scale::compute_pi_chudnovsky_ultra_scale(digits_value, precision)
             }
-            Algorithm::ChudnovskyUltraScaleStreaming => {
-                chudnovsky_ultra_scale_streaming::compute_pi_chudnovsky_ultra_scale_streaming(digits_value, precision)
-                    .unwrap_or_else(|e| format!("Ошибка потокового вычисления: {}", e))
-            }
+            Algorithm::ChudnovskyUltraScaleStreaming => unreachable!(),
             Algorithm::BorweinQuadratic => {
                 borwein_quadratic::compute_pi_borwein_quadratic(digits_value, precision)
             }
             Algorithm::MachinFormula => machin_formula::compute_pi_machin(digits_value, precision),
+            })
         })
         .await
-        .map_err(|e| format!("Computation task failed: {}", e))
+        .map_err(|e| format!("Computation task failed: {}", e))?
     }
 }

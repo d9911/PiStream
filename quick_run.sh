@@ -14,7 +14,7 @@ fi
 
 # Компилируем в debug режиме для быстрой компиляции
 echo "🔨 Быстрая компиляция (debug режим)..."
-if ! cargo build; then
+if ! cargo build --locked --bin pistream-cli; then
     echo "❌ Ошибка компиляции!"
     exit 1
 fi
@@ -27,4 +27,4 @@ echo "🚀 Запускаем PiStreamTerminal..."
 echo "💡 Для прерывания нажмите Ctrl+C"
 echo ""
 
-./target/debug/PiStreamTerminal
+./target/debug/pistream-cli

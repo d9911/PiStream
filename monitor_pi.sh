@@ -12,7 +12,7 @@ show_stats() {
     echo "📊 Статистика процесса:"
     
     # Находим процесс PiStreamTerminal
-    PID=$(pgrep -f "PiStreamTerminal")
+    PID=$(pgrep -x "pistream-cli")
     if [ -z "$PID" ]; then
         echo "❌ Процесс PiStreamTerminal не найден"
         return 1
@@ -42,7 +42,7 @@ show_stats() {
 
 # Функция для прерывания процесса
 interrupt_process() {
-    PID=$(pgrep -f "PiStreamTerminal")
+    PID=$(pgrep -x "pistream-cli")
     if [ -n "$PID" ]; then
         echo "🛑 Отправляем сигнал прерывания процессу $PID..."
         kill -INT $PID
