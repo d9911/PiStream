@@ -1,3 +1,6 @@
+#[path = "../installer_lock.rs"]
+mod installer_lock;
+
 use pi_stream_terminal::{Digits, FileWriter, PiComputationUseCase, PiStreamApp, UiPresenter};
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -5,6 +8,13 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
+    let _installation_lock = match installer_lock::acquire("org.d9911.pistreamterminal") {
+        Ok(lock) => lock,
+        Err(error) => {
+            eprintln!("Не удалось подготовить блокировку установки: {error}");
+            process::exit(1);
+        }
+    };
     // Настройка обработки сигналов для корректного прерывания
     let interrupt_flag = Arc::new(AtomicBool::new(false));
     let flag_clone = interrupt_flag.clone();

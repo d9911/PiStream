@@ -1,8 +1,12 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
+mod installer_lock;
+
 use pi_stream_terminal::desktop::{appearance, App};
 
 fn main() -> eframe::Result {
+    let _installation_lock = installer_lock::acquire("org.d9911.pistreamterminal")
+        .map_err(|error| eframe::Error::AppCreation(Box::new(error)))?;
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("PiStreamTerminal")

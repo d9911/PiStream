@@ -1,0 +1,44 @@
+{
+  "name": "PiStreamTerminal",
+  "binary": "PiStreamTerminal",
+  "identifier": "org.d9911.pistreamterminal",
+  "windows_target": "x86_64-pc-windows-gnu",
+  "windows_directory": "windows-x64",
+  "windows_executable": "PiStreamTerminal.exe",
+  "linux_name": "pistreamterminal",
+  "mac_icon": "assets/icons/PiStreamTerminal.icns",
+  "windows_icon": "assets/icons/pistream.ico",
+  "linux_icon": "assets/icons/pistream-128.png",
+  "signing_variable": "PISTREAM_SIGNING_IDENTITY",
+  "resources": [
+    "assets",
+    "docs/INSTALLERS.md"
+  ],
+  "cli_binaries": [
+    "pistream-cli"
+  ],
+  "extra_build_tools": [
+    "make",
+    "m4",
+    "diff"
+  ],
+  "linux_pkgconfig": [
+    "xkbcommon",
+    "x11"
+  ],
+  "linux_runtime": [
+    "libx11-6",
+    "libxrandr2",
+    "libxcursor1",
+    "libxi6",
+    "libxinerama1",
+    "libxkbcommon0",
+    "libxkbcommon-x11-0",
+    "libgl1",
+    "libegl1",
+    "libfontconfig1",
+    "libwayland-client0",
+    "xdg-desktop-portal",
+    "xdg-desktop-portal-gtk"
+  ]
+}

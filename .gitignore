@@ -4,3 +4,39 @@
 *.log
 pi_stream_*_digits.txt
 pi_stream_*_digits.txt.*
+
+/build/
+__pycache__/
+.ruff_cache/
+.mypy_cache/
+
+# Results produced by FileStorage::generate_pi_filename
+/pi_*_digits_*.txt
+/pi_*_digits_*.txt.*
+
+# Local Python environments, credentials and code-signing material
+/.venv/
+.env
+.env.*
+.env-*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Machine-local IDE and OS metadata
+/.idea/
+/*.iml
+.vscode/*.local.json
+Icon
+Icon[[:cntrl:]]
+._*
+desktop.ini
+Thumbs.db
+*.swp
+*.swo
+*~
